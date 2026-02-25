@@ -2,82 +2,223 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sửa Lỗi Camera</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Camera Đa Năng</title>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; text-align: center; }
-        #video { width: 100%; max-height: 70vh; background: #222; }
-        .controls { padding: 20px; }
-        button { 
-            padding: 15px 30px; 
-            font-size: 18px; 
-            border-radius: 50px; 
-            border: none; 
-            background: #fff; 
-            color: #000;
-            font-weight: bold;
-            margin: 5px;
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Video Preview */
+        .preview-area { position: relative; flex: 1; background: #111; display: flex; align-items: center; justify-content: center; }
+        #video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Trạng thái */
+        #status { position: absolute; top: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 14px; z-index: 10; color: #0f0; }
+        #timer { position: absolute; top: 50px; font-size: 20px; color: red; display: none; font-weight: bold; }
+
+        /* Bảng điều khiển chính */
+        .controls { background: #000; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        
+        .main-actions { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
+        
+        .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
+        .btn-snap { background: #fff; border: 4px solid #444; width: 70px; height: 70px; }
+        .btn-record { background: #ff3b30; color: #fff; }
+        .btn-record.recording { border-radius: 10px; animation: pulse 1s infinite; }
+        .btn-switch { background: #333; color: #fff; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
-        #error-msg { color: #ff5555; padding: 10px; font-size: 14px; }
-        #photo-list { display: flex; overflow-x: auto; padding: 10px; gap: 10px; }
-        .thumb { width: 100px; border: 2px solid #fff; border-radius: 5px; }
+
+        /* Danh sách kết quả */
+        .gallery { width: 100%; overflow-x: auto; white-space: nowrap; padding: 10px; background: #111; display: flex; gap: 10px; min-height: 100px; }
+        .gallery-item { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #333; cursor: pointer; }
+        
+        /* Modal xem lại */
+        #modal { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
+        #modal-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #modal-content img, #modal-content video { max-width: 100%; max-height: 100%; }
+        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="error-msg">Đang kiểm tra camera...</div>
-    
-    <video id="video" autoplay playsinline></video>
-    
-    <div class="controls">
-        <button id="startBtn">1. Bật Camera</button>
-        <button id="snapBtn" style="display:none; background: #00ff00;">2. Chụp Ảnh</button>
+    <div class="preview-area">
+        <div id="status">Sẵn sàng</div>
+        <div id="timer">00:00</div>
+        <video id="video" autoplay playsinline muted></video>
     </div>
 
-    <div id="photo-list"></div>
+    <div class="gallery" id="gallery">
+        <!-- Ảnh và video đã quay sẽ hiện ở đây -->
+    </div>
+
+    <div class="controls">
+        <div class="main-actions">
+            <button class="btn-circle btn-switch" onclick="toggleCamera()" title="Đổi Camera">🔄</button>
+            <button class="btn-circle btn-snap" onclick="takePhoto()" title="Chụp ảnh"></button>
+            <button id="recordBtn" class="btn-circle btn-record" onclick="toggleRecording()" title="Quay video">🎥</button>
+        </div>
+        <div style="font-size: 12px; color: #666;">Chạm vào ảnh/video trong bộ sưu tập để xem lại</div>
+    </div>
+
+    <!-- Modal Xem lại -->
+    <div id="modal">
+        <div id="modal-content"></div>
+        <div class="modal-btns">
+            <button onclick="closeModal()" style="padding: 10px 20px; background: #333; color: #fff; border: none; border-radius: 5px;">Đóng</button>
+            <a id="downloadLink" style="padding: 10px 20px; background: #007aff; color: #fff; border: none; border-radius: 5px; text-decoration: none;">Tải về</a>
+        </div>
+    </div>
+
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
         const video = document.getElementById('video');
-        const errorMsg = document.getElementById('error-msg');
-        const startBtn = document.getElementById('startBtn');
-        const snapBtn = document.getElementById('snapBtn');
-        const photoList = document.getElementById('photo-list');
+        const gallery = document.getElementById('gallery');
+        const recordBtn = document.getElementById('recordBtn');
+        const timerEl = document.getElementById('timer');
+        const statusEl = document.getElementById('status');
         const canvas = document.getElementById('canvas');
+        const modal = document.getElementById('modal');
+        const modalContent = document.getElementById('modal-content');
+        const downloadLink = document.getElementById('downloadLink');
 
-        // Hàm yêu cầu camera khi người dùng bấm nút (tương tác trực tiếp giúp dễ xin quyền hơn)
-        startBtn.onclick = async () => {
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let startTime;
+        let timerInterval;
+        let currentFacingMode = "user"; // "user" là trước, "environment" là sau
+
+        async function initCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: false 
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: true
                 });
                 video.srcObject = stream;
-                startBtn.style.display = 'none';
-                snapBtn.style.display = 'inline-block';
-                errorMsg.innerHTML = "✅ Camera đã bật!";
-                errorMsg.style.color = "#00ff00";
+                statusEl.innerText = currentFacingMode === "user" ? "Cam Trước" : "Cam Sau";
             } catch (err) {
+                statusEl.innerText = "Lỗi Camera";
                 console.error(err);
-                errorMsg.innerHTML = "❌ LỖI: " + err.name + ". <br>Bạn cần bấm nút 'Open in Browser' ở góc phải màn hình để dùng trình duyệt gốc!";
             }
-        };
+        }
 
-        snapBtn.onclick = () => {
+        function toggleCamera() {
+            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+            initCamera();
+        }
+
+        function takePhoto() {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
-            // Lật ảnh cho đúng chiều selfie
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0);
+            if (currentFacingMode === "user") {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
             
-            const img = document.createElement('img');
-            img.src = canvas.toDataURL('image/png');
-            img.className = 'thumb';
-            photoList.prepend(img);
-        };
+            ctx.drawImage(video, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            addToGallery(dataUrl, 'image');
+            
+            // Hiệu ứng flash
+            video.style.opacity = "0.5";
+            setTimeout(() => video.style.opacity = "1", 100);
+        }
+
+        function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        function startRecording() {
+            recordedChunks = [];
+            const stream = video.srcObject;
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                addToGallery(url, 'video');
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            recordBtn.classList.add('recording');
+            recordBtn.innerText = "⏹️";
+            
+            // Timer
+            startTime = Date.now();
+            timerEl.style.display = 'block';
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.innerText = "🎥";
+            clearInterval(timerInterval);
+            timerEl.style.display = 'none';
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const diff = Math.floor((now - startTime) / 1000);
+            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            timerEl.innerText = `${m}:${s}`;
+        }
+
+        function addToGallery(url, type) {
+            const item = document.createElement(type === 'image' ? 'img' : 'video');
+            item.src = url;
+            item.className = 'gallery-item';
+            if (type === 'video') item.muted = true;
+            
+            item.onclick = () => showModal(url, type);
+            gallery.prepend(item);
+        }
+
+        function showModal(url, type) {
+            modalContent.innerHTML = '';
+            let el;
+            if (type === 'image') {
+                el = document.createElement('img');
+            } else {
+                el = document.createElement('video');
+                el.controls = true;
+                el.autoplay = true;
+            }
+            el.src = url;
+            modalContent.appendChild(el);
+            downloadLink.href = url;
+            downloadLink.download = `file_${Date.now()}.${type === 'image' ? 'png' : 'webm'}`;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+            modalContent.innerHTML = '';
+        }
+
+        // Khởi động
+        window.onload = initCamera;
     </script>
 </body>
 </html>
