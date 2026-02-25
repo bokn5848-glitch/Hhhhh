@@ -13,16 +13,48 @@
         
         /* Overlay UI */
         #status { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 10; }
-        #zoom-value { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 10; color: #ffcc00; }
-        #timer { position: absolute; top: 60px; font-size: 24px; color: #ff3b30; font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,0.8); display: none; }
+        #timer { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #ff3b30; font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,0.8); display: none; z-index: 10; }
 
-        /* Zoom Slider - Dọc bên cạnh */
-        .zoom-container { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20; background: rgba(0,0,0,0.3); padding: 15px 5px; border-radius: 30px; }
-        .zoom-slider { appearance: none; width: 150px; height: 4px; background: #555; border-radius: 2px; transform: rotate(-90deg); margin: 60px 0; }
-        .zoom-slider::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; background: #fff; border-radius: 50%; border: 2px solid #007aff; cursor: pointer; }
+        /* Zoom Control - Nút tròn và Thanh kéo ẩn hiện */
+        .zoom-wrapper { position: absolute; right: 20px; bottom: 100px; display: flex; flex-direction: column; align-items: center; z-index: 30; }
+        
+        #zoomInputContainer { 
+            display: none; 
+            background: rgba(0,0,0,0.6); 
+            padding: 20px 10px; 
+            border-radius: 30px; 
+            margin-bottom: 10px; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 10px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .zoom-slider { appearance: none; width: 180px; height: 6px; background: #444; border-radius: 3px; transform: rotate(-90deg); margin: 80px 0; }
+        .zoom-slider::-webkit-slider-thumb { appearance: none; width: 28px; height: 28px; background: #fff; border-radius: 50%; border: 3px solid #007aff; cursor: pointer; shadow: 0 0 10px rgba(0,0,0,0.5); }
+
+        .btn-zoom-toggle { 
+            width: 55px; 
+            height: 55px; 
+            background: rgba(255, 255, 255, 0.2); 
+            border: 2px solid #fff; 
+            border-radius: 50%; 
+            color: #fff; 
+            font-size: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .btn-zoom-toggle.active { background: #007aff; border-color: #007aff; }
 
         /* Controls */
-        .controls { background: #000; padding: 15px 0 30px 0; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .controls { background: #000; padding: 15px 0 30px 0; display: flex; flex-direction: column; align-items: center; gap: 15px; border-top: 1px solid #222; }
         .main-actions { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
         
         .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; }
@@ -35,30 +67,33 @@
         .gallery { width: 100%; overflow-x: auto; white-space: nowrap; padding: 10px; background: #111; display: flex; gap: 10px; height: 90px; }
         .gallery-item-wrapper { position: relative; flex-shrink: 0; }
         .gallery-item { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #333; }
-        .delete-btn { position: absolute; top: -5px; right: -5px; background: rgba(255,0,0,0.8); color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; border: none; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; border: 2px solid #000; display: flex; align-items: center; justify-content: center; z-index: 5; font-weight: bold; }
 
         /* Modal */
         #modal { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
         #modal-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
         #modal-content img, #modal-content video { max-width: 100%; max-height: 100%; border-radius: 10px; }
-        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 15px; }
-        .btn-modal { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 15px; padding-bottom: 40px; }
+        .btn-modal { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body>
 
     <div class="preview-area">
         <div id="status">Khởi động...</div>
-        <div id="zoom-value">1.0x</div>
         <div id="timer">00:00</div>
         
         <video id="video" autoplay playsinline muted></video>
 
-        <!-- Thanh Zoom -->
-        <div class="zoom-container">
-            <span style="font-size:10px">+</span>
-            <input type="range" id="zoomInput" class="zoom-slider" min="1" max="10" step="0.1" value="1">
-            <span style="font-size:10px">-</span>
+        <!-- Cụm Zoom mới -->
+        <div class="zoom-wrapper">
+            <div id="zoomInputContainer">
+                <span id="zoom-text" style="font-size: 14px; font-weight: bold; color: #ffcc00;">1.0x</span>
+                <input type="range" id="zoomInput" class="zoom-slider" min="1" max="10" step="0.1" value="1">
+            </div>
+            <button class="btn-zoom-toggle" id="zoomToggle">
+                <span>ZOOM</span>
+            </button>
         </div>
     </div>
 
@@ -78,7 +113,7 @@
         <div class="modal-btns">
             <button class="btn-modal" onclick="closeModal()" style="background:#444; color:#fff">Đóng</button>
             <button id="delCurrentBtn" class="btn-modal" style="background:#ff3b30; color:#fff">Xóa</button>
-            <a id="downloadLink" class="btn-modal" style="background:#007aff; color:#fff; text-decoration:none">Lưu</a>
+            <a id="downloadLink" class="btn-modal" style="background:#007aff; color:#fff; text-decoration:none; display:flex; align-items:center;">Lưu</a>
         </div>
     </div>
 
@@ -88,7 +123,9 @@
         const video = document.getElementById('video');
         const gallery = document.getElementById('gallery');
         const zoomInput = document.getElementById('zoomInput');
-        const zoomValue = document.getElementById('zoom-value');
+        const zoomText = document.getElementById('zoom-text');
+        const zoomToggle = document.getElementById('zoomToggle');
+        const zoomInputContainer = document.getElementById('zoomInputContainer');
         const statusEl = document.getElementById('status');
         const recordBtn = document.getElementById('recordBtn');
         const timerEl = document.getElementById('timer');
@@ -112,21 +149,19 @@
             }
             try {
                 const constraints = {
-                    video: { 
-                        facingMode: currentFacingMode,
-                        zoom: true // Một số trình duyệt hỗ trợ zoom native
-                    },
+                    video: { facingMode: currentFacingMode },
                     audio: true
                 };
                 currentStream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = currentStream;
                 
-                // Lật đúng chiều cho camera trước
+                // Lật đúng chiều cho camera selfie
                 video.style.transform = (currentFacingMode === "user") ? "scaleX(-1)" : "scaleX(1)";
-                statusEl.innerText = (currentFacingMode === "user" ? "📷 Trước" : "📷 Sau");
+                statusEl.innerText = (currentFacingMode === "user" ? "📷 Cam Trước" : "📷 Cam Sau");
                 
-                // Reset zoom khi đổi cam
+                // Reset zoom
                 zoomInput.value = 1;
+                zoomText.innerText = "1.0x";
                 applyZoom(1);
 
             } catch (err) {
@@ -135,10 +170,16 @@
             }
         }
 
-        // 2. Zoom - Sử dụng CSS Transform để tương thích mọi trình duyệt
+        // 2. Zoom Toggle
+        zoomToggle.onclick = () => {
+            const isVisible = zoomInputContainer.style.display === 'flex';
+            zoomInputContainer.style.display = isVisible ? 'none' : 'flex';
+            zoomToggle.classList.toggle('active', !isVisible);
+        };
+
         zoomInput.oninput = (e) => {
             const val = e.target.value;
-            zoomValue.innerText = parseFloat(val).toFixed(1) + "x";
+            zoomText.innerText = parseFloat(val).toFixed(1) + "x";
             applyZoom(val);
         };
 
@@ -147,7 +188,7 @@
             video.style.transform = `scale(${val}) scaleX(${mirror})`;
         }
 
-        // 3. Chụp ảnh
+        // 3. Chụp ảnh (Xử lý đúng chiều và Zoom)
         function takePhoto() {
             const canvas = document.getElementById('canvas');
             canvas.width = video.videoWidth;
@@ -157,13 +198,13 @@
             const zoom = parseFloat(zoomInput.value);
             
             ctx.save();
-            // Lật ảnh cho đúng chiều camera selfie
+            // Lật ảnh nếu là cam selfie để lưu đúng chiều thực tế
             if (currentFacingMode === "user") {
                 ctx.translate(canvas.width, 0);
                 ctx.scale(-1, 1);
             }
             
-            // Vẽ với độ Zoom hiện tại
+            // Tính toán vùng vẽ dựa trên Zoom
             const sw = canvas.width / zoom;
             const sh = canvas.height / zoom;
             const sx = (canvas.width - sw) / 2;
@@ -202,7 +243,7 @@
             }
         }
 
-        // 5. Gallery & Xóa
+        // 5. Bộ sưu tập & Xóa
         function saveToGallery(url, type) {
             const id = Date.now();
             const item = { id, url, type };
@@ -241,7 +282,7 @@
             closeModal();
         }
 
-        // 6. Modal Xem lại
+        // 6. Xem lại
         function openModal(item) {
             modalContent.innerHTML = '';
             const el = document.createElement(item.type === 'image' ? 'img' : 'video');
@@ -256,9 +297,8 @@
             modal.style.display = 'flex';
         }
 
-        function closeModal() { modal.style.display = 'none'; }
+        function closeModal() { modal.style.display = 'none'; modalContent.innerHTML = ''; }
 
-        // Tiện ích
         function toggleCamera() {
             currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
             initCamera();
@@ -276,10 +316,7 @@
             }, 1000);
         }
 
-        function stopTimer() {
-            clearInterval(timerInterval);
-            timerEl.style.display = 'none';
-        }
+        function stopTimer() { clearInterval(timerInterval); timerEl.style.display = 'none'; }
 
         window.onload = initCamera;
     </script>
