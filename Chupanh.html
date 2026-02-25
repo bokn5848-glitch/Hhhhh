@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa Lỗi Camera</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; text-align: center; }
+        #video { width: 100%; max-height: 70vh; background: #222; }
+        .controls { padding: 20px; }
+        button { 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            border-radius: 50px; 
+            border: none; 
+            background: #fff; 
+            color: #000;
+            font-weight: bold;
+            margin: 5px;
+        }
+        #error-msg { color: #ff5555; padding: 10px; font-size: 14px; }
+        #photo-list { display: flex; overflow-x: auto; padding: 10px; gap: 10px; }
+        .thumb { width: 100px; border: 2px solid #fff; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="error-msg">Đang kiểm tra camera...</div>
+    
+    <video id="video" autoplay playsinline></video>
+    
+    <div class="controls">
+        <button id="startBtn">1. Bật Camera</button>
+        <button id="snapBtn" style="display:none; background: #00ff00;">2. Chụp Ảnh</button>
+    </div>
+
+    <div id="photo-list"></div>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const errorMsg = document.getElementById('error-msg');
+        const startBtn = document.getElementById('startBtn');
+        const snapBtn = document.getElementById('snapBtn');
+        const photoList = document.getElementById('photo-list');
+        const canvas = document.getElementById('canvas');
+
+        // Hàm yêu cầu camera khi người dùng bấm nút (tương tác trực tiếp giúp dễ xin quyền hơn)
+        startBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+                startBtn.style.display = 'none';
+                snapBtn.style.display = 'inline-block';
+                errorMsg.innerHTML = "✅ Camera đã bật!";
+                errorMsg.style.color = "#00ff00";
+            } catch (err) {
+                console.error(err);
+                errorMsg.innerHTML = "❌ LỖI: " + err.name + ". <br>Bạn cần bấm nút 'Open in Browser' ở góc phải màn hình để dùng trình duyệt gốc!";
+            }
+        };
+
+        snapBtn.onclick = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Lật ảnh cho đúng chiều selfie
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0);
+            
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.className = 'thumb';
+            photoList.prepend(img);
+        };
+    </script>
+</body>
+</html>
