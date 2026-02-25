@@ -3,73 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Camera Đa Năng</title>
+    <title>Camera Zoom Pro</title>
     <style>
         body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         /* Video Preview */
-        .preview-area { position: relative; flex: 1; background: #111; display: flex; align-items: center; justify-content: center; }
-        #video { width: 100%; height: 100%; object-fit: cover; }
+        .preview-area { position: relative; flex: 1; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.1s; }
         
-        /* Trạng thái */
-        #status { position: absolute; top: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 14px; z-index: 10; color: #0f0; }
-        #timer { position: absolute; top: 50px; font-size: 20px; color: red; display: none; font-weight: bold; }
+        /* Overlay UI */
+        #status { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 10; }
+        #zoom-value { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 10; color: #ffcc00; }
+        #timer { position: absolute; top: 60px; font-size: 24px; color: #ff3b30; font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,0.8); display: none; }
 
-        /* Bảng điều khiển chính */
-        .controls { background: #000; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        
+        /* Zoom Slider - Dọc bên cạnh */
+        .zoom-container { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 20; background: rgba(0,0,0,0.3); padding: 15px 5px; border-radius: 30px; }
+        .zoom-slider { appearance: none; width: 150px; height: 4px; background: #555; border-radius: 2px; transform: rotate(-90deg); margin: 60px 0; }
+        .zoom-slider::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; background: #fff; border-radius: 50%; border: 2px solid #007aff; cursor: pointer; }
+
+        /* Controls */
+        .controls { background: #000; padding: 15px 0 30px 0; display: flex; flex-direction: column; align-items: center; gap: 15px; }
         .main-actions { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
         
-        .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.2s; }
-        .btn-snap { background: #fff; border: 4px solid #444; width: 70px; height: 70px; }
+        .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .btn-snap { background: #fff; border: 5px solid #444; width: 75px; height: 75px; }
         .btn-record { background: #ff3b30; color: #fff; }
-        .btn-record.recording { border-radius: 10px; animation: pulse 1s infinite; }
-        .btn-switch { background: #333; color: #fff; }
+        .recording { animation: pulse 1s infinite; border-radius: 15px; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
+        /* Gallery */
+        .gallery { width: 100%; overflow-x: auto; white-space: nowrap; padding: 10px; background: #111; display: flex; gap: 10px; height: 90px; }
+        .gallery-item-wrapper { position: relative; flex-shrink: 0; }
+        .gallery-item { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #333; }
+        .delete-btn { position: absolute; top: -5px; right: -5px; background: rgba(255,0,0,0.8); color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; border: none; display: flex; align-items: center; justify-content: center; z-index: 5; }
 
-        /* Danh sách kết quả */
-        .gallery { width: 100%; overflow-x: auto; white-space: nowrap; padding: 10px; background: #111; display: flex; gap: 10px; min-height: 100px; }
-        .gallery-item { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #333; cursor: pointer; }
-        
-        /* Modal xem lại */
+        /* Modal */
         #modal { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
-        #modal-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #modal-content img, #modal-content video { max-width: 100%; max-height: 100%; }
-        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 20px; }
+        #modal-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
+        #modal-content img, #modal-content video { max-width: 100%; max-height: 100%; border-radius: 10px; }
+        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 15px; }
+        .btn-modal { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="preview-area">
-        <div id="status">Sẵn sàng</div>
+        <div id="status">Khởi động...</div>
+        <div id="zoom-value">1.0x</div>
         <div id="timer">00:00</div>
+        
         <video id="video" autoplay playsinline muted></video>
+
+        <!-- Thanh Zoom -->
+        <div class="zoom-container">
+            <span style="font-size:10px">+</span>
+            <input type="range" id="zoomInput" class="zoom-slider" min="1" max="10" step="0.1" value="1">
+            <span style="font-size:10px">-</span>
+        </div>
     </div>
 
-    <div class="gallery" id="gallery">
-        <!-- Ảnh và video đã quay sẽ hiện ở đây -->
-    </div>
+    <div class="gallery" id="gallery"></div>
 
     <div class="controls">
         <div class="main-actions">
-            <button class="btn-circle btn-switch" onclick="toggleCamera()" title="Đổi Camera">🔄</button>
-            <button class="btn-circle btn-snap" onclick="takePhoto()" title="Chụp ảnh"></button>
-            <button id="recordBtn" class="btn-circle btn-record" onclick="toggleRecording()" title="Quay video">🎥</button>
+            <button class="btn-circle" onclick="toggleCamera()" style="background:#333; color:white">🔄</button>
+            <button class="btn-circle btn-snap" onclick="takePhoto()"></button>
+            <button id="recordBtn" class="btn-circle btn-record" onclick="toggleRecording()">🎥</button>
         </div>
-        <div style="font-size: 12px; color: #666;">Chạm vào ảnh/video trong bộ sưu tập để xem lại</div>
     </div>
 
     <!-- Modal Xem lại -->
     <div id="modal">
         <div id="modal-content"></div>
         <div class="modal-btns">
-            <button onclick="closeModal()" style="padding: 10px 20px; background: #333; color: #fff; border: none; border-radius: 5px;">Đóng</button>
-            <a id="downloadLink" style="padding: 10px 20px; background: #007aff; color: #fff; border: none; border-radius: 5px; text-decoration: none;">Tải về</a>
+            <button class="btn-modal" onclick="closeModal()" style="background:#444; color:#fff">Đóng</button>
+            <button id="delCurrentBtn" class="btn-modal" style="background:#ff3b30; color:#fff">Xóa</button>
+            <a id="downloadLink" class="btn-modal" style="background:#007aff; color:#fff; text-decoration:none">Lưu</a>
         </div>
     </div>
 
@@ -78,146 +87,200 @@
     <script>
         const video = document.getElementById('video');
         const gallery = document.getElementById('gallery');
+        const zoomInput = document.getElementById('zoomInput');
+        const zoomValue = document.getElementById('zoom-value');
+        const statusEl = document.getElementById('status');
         const recordBtn = document.getElementById('recordBtn');
         const timerEl = document.getElementById('timer');
-        const statusEl = document.getElementById('status');
-        const canvas = document.getElementById('canvas');
         const modal = document.getElementById('modal');
         const modalContent = document.getElementById('modal-content');
         const downloadLink = document.getElementById('downloadLink');
+        const delCurrentBtn = document.getElementById('delCurrentBtn');
 
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
-        let startTime;
         let timerInterval;
-        let currentFacingMode = "user"; // "user" là trước, "environment" là sau
+        let currentFacingMode = "user"; 
+        let currentStream;
+        let currentGalleryItems = [];
 
+        // 1. Khởi tạo Camera
         async function initCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+            }
             try {
-                if (video.srcObject) {
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: currentFacingMode },
+                const constraints = {
+                    video: { 
+                        facingMode: currentFacingMode,
+                        zoom: true // Một số trình duyệt hỗ trợ zoom native
+                    },
                     audio: true
-                });
-                video.srcObject = stream;
-                statusEl.innerText = currentFacingMode === "user" ? "Cam Trước" : "Cam Sau";
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                
+                // Lật đúng chiều cho camera trước
+                video.style.transform = (currentFacingMode === "user") ? "scaleX(-1)" : "scaleX(1)";
+                statusEl.innerText = (currentFacingMode === "user" ? "📷 Trước" : "📷 Sau");
+                
+                // Reset zoom khi đổi cam
+                zoomInput.value = 1;
+                applyZoom(1);
+
             } catch (err) {
-                statusEl.innerText = "Lỗi Camera";
+                statusEl.innerText = "Lỗi quyền camera!";
                 console.error(err);
             }
         }
 
-        function toggleCamera() {
-            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-            initCamera();
+        // 2. Zoom - Sử dụng CSS Transform để tương thích mọi trình duyệt
+        zoomInput.oninput = (e) => {
+            const val = e.target.value;
+            zoomValue.innerText = parseFloat(val).toFixed(1) + "x";
+            applyZoom(val);
+        };
+
+        function applyZoom(val) {
+            const mirror = (currentFacingMode === "user") ? -1 : 1;
+            video.style.transform = `scale(${val}) scaleX(${mirror})`;
         }
 
+        // 3. Chụp ảnh
         function takePhoto() {
+            const canvas = document.getElementById('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             
+            const zoom = parseFloat(zoomInput.value);
+            
+            ctx.save();
+            // Lật ảnh cho đúng chiều camera selfie
             if (currentFacingMode === "user") {
                 ctx.translate(canvas.width, 0);
                 ctx.scale(-1, 1);
             }
             
-            ctx.drawImage(video, 0, 0);
-            const dataUrl = canvas.toDataURL('image/png');
-            addToGallery(dataUrl, 'image');
+            // Vẽ với độ Zoom hiện tại
+            const sw = canvas.width / zoom;
+            const sh = canvas.height / zoom;
+            const sx = (canvas.width - sw) / 2;
+            const sy = (canvas.height - sh) / 2;
             
-            // Hiệu ứng flash
-            video.style.opacity = "0.5";
-            setTimeout(() => video.style.opacity = "1", 100);
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            
+            const url = canvas.toDataURL('image/png');
+            saveToGallery(url, 'image');
+
+            video.style.opacity = 0.5;
+            setTimeout(() => video.style.opacity = 1, 100);
         }
 
+        // 4. Quay Video
         function toggleRecording() {
             if (!isRecording) {
-                startRecording();
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(currentStream);
+                mediaRecorder.ondataavailable = (e) => e.data.size > 0 && recordedChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    saveToGallery(url, 'video');
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                startTimer();
             } else {
-                stopRecording();
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.classList.remove('recording');
+                stopTimer();
             }
         }
 
-        function startRecording() {
-            recordedChunks = [];
-            const stream = video.srcObject;
-            mediaRecorder = new MediaRecorder(stream);
-
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) recordedChunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                addToGallery(url, 'video');
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-            recordBtn.classList.add('recording');
-            recordBtn.innerText = "⏹️";
-            
-            // Timer
-            startTime = Date.now();
-            timerEl.style.display = 'block';
-            timerInterval = setInterval(updateTimer, 1000);
+        // 5. Gallery & Xóa
+        function saveToGallery(url, type) {
+            const id = Date.now();
+            const item = { id, url, type };
+            currentGalleryItems.push(item);
+            renderGallery();
         }
 
-        function stopRecording() {
-            mediaRecorder.stop();
-            isRecording = false;
-            recordBtn.classList.remove('recording');
-            recordBtn.innerText = "🎥";
+        function renderGallery() {
+            gallery.innerHTML = '';
+            currentGalleryItems.forEach(item => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'gallery-item-wrapper';
+                
+                const media = document.createElement(item.type === 'image' ? 'img' : 'video');
+                media.src = item.url;
+                media.className = 'gallery-item';
+                media.onclick = () => openModal(item);
+                
+                const delBtn = document.createElement('button');
+                delBtn.innerHTML = '×';
+                delBtn.className = 'delete-btn';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteItem(item.id);
+                };
+                
+                wrapper.appendChild(media);
+                wrapper.appendChild(delBtn);
+                gallery.prepend(wrapper);
+            });
+        }
+
+        function deleteItem(id) {
+            currentGalleryItems = currentGalleryItems.filter(i => i.id !== id);
+            renderGallery();
+            closeModal();
+        }
+
+        // 6. Modal Xem lại
+        function openModal(item) {
+            modalContent.innerHTML = '';
+            const el = document.createElement(item.type === 'image' ? 'img' : 'video');
+            el.src = item.url;
+            if (item.type === 'video') el.controls = true;
+            modalContent.appendChild(el);
+            
+            downloadLink.href = item.url;
+            downloadLink.download = `camera_${item.id}.${item.type === 'image' ? 'png' : 'webm'}`;
+            
+            delCurrentBtn.onclick = () => deleteItem(item.id);
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() { modal.style.display = 'none'; }
+
+        // Tiện ích
+        function toggleCamera() {
+            currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
+            initCamera();
+        }
+
+        function startTimer() {
+            let s = 0;
+            timerEl.innerText = "00:00";
+            timerEl.style.display = 'block';
+            timerInterval = setInterval(() => {
+                s++;
+                const min = Math.floor(s/60).toString().padStart(2,'0');
+                const sec = (s%60).toString().padStart(2,'0');
+                timerEl.innerText = `${min}:${sec}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
             clearInterval(timerInterval);
             timerEl.style.display = 'none';
         }
 
-        function updateTimer() {
-            const now = Date.now();
-            const diff = Math.floor((now - startTime) / 1000);
-            const m = Math.floor(diff / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            timerEl.innerText = `${m}:${s}`;
-        }
-
-        function addToGallery(url, type) {
-            const item = document.createElement(type === 'image' ? 'img' : 'video');
-            item.src = url;
-            item.className = 'gallery-item';
-            if (type === 'video') item.muted = true;
-            
-            item.onclick = () => showModal(url, type);
-            gallery.prepend(item);
-        }
-
-        function showModal(url, type) {
-            modalContent.innerHTML = '';
-            let el;
-            if (type === 'image') {
-                el = document.createElement('img');
-            } else {
-                el = document.createElement('video');
-                el.controls = true;
-                el.autoplay = true;
-            }
-            el.src = url;
-            modalContent.appendChild(el);
-            downloadLink.href = url;
-            downloadLink.download = `file_${Date.now()}.${type === 'image' ? 'png' : 'webm'}`;
-            modal.style.display = 'flex';
-        }
-
-        function closeModal() {
-            modal.style.display = 'none';
-            modalContent.innerHTML = '';
-        }
-
-        // Khởi động
         window.onload = initCamera;
     </script>
 </body>
