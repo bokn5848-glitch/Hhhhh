@@ -2,323 +2,121 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Camera Zoom Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI So Sánh Người Nổi Tiếng</title>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #f5f7fa; margin: 0; padding: 15px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
         
-        /* Video Preview */
-        .preview-area { position: relative; flex: 1; background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.1s; }
+        /* Khung hiển thị camera và kết quả */
+        .camera-box { position: relative; width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden; border: 3px solid #0084ff; background: #000; }
+        video { width: 100%; display: block; transform: scaleX(-1); /* Phản chiếu như gương */ }
         
-        /* Overlay UI */
-        #status { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; font-size: 12px; z-index: 10; }
-        #timer { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #ff3b30; font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,0.8); display: none; z-index: 10; }
+        button { background: linear-gradient(135deg, #0084ff, #0052cc); color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 25px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 80%; box-shadow: 0 4px 10px rgba(0,132,255,0.3); }
+        button:active { transform: scale(0.98); }
 
-        /* Zoom Control - Nút tròn và Thanh kéo ẩn hiện */
-        .zoom-wrapper { position: absolute; right: 20px; bottom: 100px; display: flex; flex-direction: column; align-items: center; z-index: 30; }
+        /* Vùng hiển thị kết quả so sánh */
+        .result-container { display: none; margin-top: 25px; border-top: 2px dashed #ddd; padding-top: 20px; }
+        .match-title { font-size: 18px; font-weight: bold; color: #28a745; margin-bottom: 15px; }
+        .vs-box { display: flex; justify-content: space-around; align-items: center; gap: 10px; }
+        .face-img { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .vs-text { font-size: 20px; font-weight: bold; color: #ff3b30; }
+        .celebrity-name { font-weight: bold; margin-top: 8px; color: #333; }
         
-        #zoomInputContainer { 
-            display: none; 
-            background: rgba(0,0,0,0.6); 
-            padding: 20px 10px; 
-            border-radius: 30px; 
-            margin-bottom: 10px; 
-            flex-direction: column; 
-            align-items: center; 
-            gap: 10px;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .zoom-slider { appearance: none; width: 180px; height: 6px; background: #444; border-radius: 3px; transform: rotate(-90deg); margin: 80px 0; }
-        .zoom-slider::-webkit-slider-thumb { appearance: none; width: 28px; height: 28px; background: #fff; border-radius: 50%; border: 3px solid #007aff; cursor: pointer; shadow: 0 0 10px rgba(0,0,0,0.5); }
-
-        .btn-zoom-toggle { 
-            width: 55px; 
-            height: 55px; 
-            background: rgba(255, 255, 255, 0.2); 
-            border: 2px solid #fff; 
-            border-radius: 50%; 
-            color: #fff; 
-            font-size: 12px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        .btn-zoom-toggle.active { background: #007aff; border-color: #007aff; }
-
-        /* Controls */
-        .controls { background: #000; padding: 15px 0 30px 0; display: flex; flex-direction: column; align-items: center; gap: 15px; border-top: 1px solid #222; }
-        .main-actions { display: flex; align-items: center; justify-content: space-around; width: 100%; max-width: 400px; }
-        
-        .btn-circle { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-        .btn-snap { background: #fff; border: 5px solid #444; width: 75px; height: 75px; }
-        .btn-record { background: #ff3b30; color: #fff; }
-        .recording { animation: pulse 1s infinite; border-radius: 15px; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-        /* Gallery */
-        .gallery { width: 100%; overflow-x: auto; white-space: nowrap; padding: 10px; background: #111; display: flex; gap: 10px; height: 90px; }
-        .gallery-item-wrapper { position: relative; flex-shrink: 0; }
-        .gallery-item { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #333; }
-        .delete-btn { position: absolute; top: -5px; right: -5px; background: #ff3b30; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; border: 2px solid #000; display: flex; align-items: center; justify-content: center; z-index: 5; font-weight: bold; }
-
-        /* Modal */
-        #modal { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
-        #modal-content { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 20px; }
-        #modal-content img, #modal-content video { max-width: 100%; max-height: 100%; border-radius: 10px; }
-        .modal-btns { padding: 20px; display: flex; justify-content: center; gap: 15px; padding-bottom: 40px; }
-        .btn-modal { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .loading { display: none; color: #ff9500; font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <div class="preview-area">
-        <div id="status">Khởi động...</div>
-        <div id="timer">00:00</div>
-        
-        <video id="video" autoplay playsinline muted></video>
+<div class="container">
+    <h2>Ai Là Bản Sao Của Bạn?</h2>
+    <div class="subtitle">Chụp một bức ảnh để tìm Youtuber giống bạn nhất</div>
 
-        <!-- Cụm Zoom mới -->
-        <div class="zoom-wrapper">
-            <div id="zoomInputContainer">
-                <span id="zoom-text" style="font-size: 14px; font-weight: bold; color: #ffcc00;">1.0x</span>
-                <input type="range" id="zoomInput" class="zoom-slider" min="1" max="10" step="0.1" value="1">
+    <div class="camera-box">
+        <video id="video" autoplay playsinline></video>
+    </div>
+
+    <button id="btn-scan">📸 CHỤP & PHÂN TÍCH</button>
+    <div id="loading" class="loading">🤖 AI đang phân tích quét khuôn mặt...</div>
+
+    <!-- Khu vực hiện kết quả song song -->
+    <div id="result-box" class="result-container">
+        <div id="match-percent" class="match-title">Giống 92%</div>
+        <div class="vs-box">
+            <div>
+                <canvas id="user-canvas" style="width: 130px; height: 130px; border-radius: 50%; border: 3px solid #0084ff; object-fit: cover;"></canvas>
+                <div class="celebrity-name">Bạn</div>
             </div>
-            <button class="btn-zoom-toggle" id="zoomToggle">
-                <span>ZOOM</span>
-            </button>
+            <div class="vs-text">VS</div>
+            <div>
+                <!-- Ảnh người nổi tiếng (Thay bằng link ảnh thật nếu muốn) -->
+                <img id="celeb-img" class="face-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400" alt="Người nổi tiếng">
+                <div id="celeb-name" class="celebrity-name">Độ Mixi</div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="gallery" id="gallery"></div>
+<script>
+    const video = document.getElementById('video');
+    const btnScan = document.getElementById('btn-scan');
+    const loading = document.getElementById('loading');
+    const resultBox = document.getElementById('result-box');
+    const userCanvas = document.getElementById('user-canvas');
+    const celebImg = document.getElementById('celeb-img');
+    const celebName = document.getElementById('celeb-name');
+    const matchPercent = document.getElementById('match-percent');
 
-    <div class="controls">
-        <div class="main-actions">
-            <button class="btn-circle" onclick="toggleCamera()" style="background:#333; color:white">🔄</button>
-            <button class="btn-circle btn-snap" onclick="takePhoto()"></button>
-            <button id="recordBtn" class="btn-circle btn-record" onclick="toggleRecording()">🎥</button>
-        </div>
-    </div>
+    // Danh sách Youtuber mẫu để AI đối chiếu ngẫu nhiên khi chạy offline thuần HTML
+    const listCelebs = [
+        { name: "Độ Mixi", img: "https://i.imgur.com/83pL6yG.png", percent: "87.5%" },
+        { name: "Cris Phan", img: "https://i.imgur.com/xscH9sS.png", percent: "91.2%" },
+        { name: "Sơn Tùng M-TP", img: "https://i.imgur.com/eBwzU0P.png", percent: "85.4%" },
+        { name: "PewPew", img: "https://i.imgur.com/gYwNshI.png", percent: "79.9%" }
+    ];
 
-    <!-- Modal Xem lại -->
-    <div id="modal">
-        <div id="modal-content"></div>
-        <div class="modal-btns">
-            <button class="btn-modal" onclick="closeModal()" style="background:#444; color:#fff">Đóng</button>
-            <button id="delCurrentBtn" class="btn-modal" style="background:#ff3b30; color:#fff">Xóa</button>
-            <a id="downloadLink" class="btn-modal" style="background:#007aff; color:#fff; text-decoration:none; display:flex; align-items:center;">Lưu</a>
-        </div>
-    </div>
+    // 1. Mở camera ngay khi vào web
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 400, height: 400 } })
+        .then(stream => { video.srcObject = stream; })
+        .catch(err => { alert("Vui lòng cho phép quyền Camera để trải nghiệm!"); });
 
-    <canvas id="canvas" style="display:none;"></canvas>
+    // 2. Nhấn nút chụp và giả lập quét AI cực nhanh
+    btnScan.addEventListener('click', () => {
+        // Hiện hiệu ứng loading
+        loading.style.display = "block";
+        resultBox.style.display = "none";
+        
+        // Chụp lại ảnh từ video đưa vào canvas tròn của người dùng
+        const ctx = userCanvas.getContext('2d');
+        userCanvas.width = video.videoWidth;
+        userCanvas.height = video.videoHeight;
+        // Lật ngược canvas lại cho đúng chiều gương
+        ctx.translate(userCanvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, userCanvas.width, userCanvas.height);
 
-    <script>
-        const video = document.getElementById('video');
-        const gallery = document.getElementById('gallery');
-        const zoomInput = document.getElementById('zoomInput');
-        const zoomText = document.getElementById('zoom-text');
-        const zoomToggle = document.getElementById('zoomToggle');
-        const zoomInputContainer = document.getElementById('zoomInputContainer');
-        const statusEl = document.getElementById('status');
-        const recordBtn = document.getElementById('recordBtn');
-        const timerEl = document.getElementById('timer');
-        const modal = document.getElementById('modal');
-        const modalContent = document.getElementById('modal-content');
-        const downloadLink = document.getElementById('downloadLink');
-        const delCurrentBtn = document.getElementById('delCurrentBtn');
-
-        let mediaRecorder;
-        let recordedChunks = [];
-        let isRecording = false;
-        let timerInterval;
-        let currentFacingMode = "user"; 
-        let currentStream;
-        let currentGalleryItems = [];
-
-        // 1. Khởi tạo Camera
-        async function initCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(t => t.stop());
-            }
-            try {
-                const constraints = {
-                    video: { facingMode: currentFacingMode },
-                    audio: true
-                };
-                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-                video.srcObject = currentStream;
-                
-                // Lật đúng chiều cho camera selfie
-                video.style.transform = (currentFacingMode === "user") ? "scaleX(-1)" : "scaleX(1)";
-                statusEl.innerText = (currentFacingMode === "user" ? "📷 Cam Trước" : "📷 Cam Sau");
-                
-                // Reset zoom
-                zoomInput.value = 1;
-                zoomText.innerText = "1.0x";
-                applyZoom(1);
-
-            } catch (err) {
-                statusEl.innerText = "Lỗi quyền camera!";
-                console.error(err);
-            }
-        }
-
-        // 2. Zoom Toggle
-        zoomToggle.onclick = () => {
-            const isVisible = zoomInputContainer.style.display === 'flex';
-            zoomInputContainer.style.display = isVisible ? 'none' : 'flex';
-            zoomToggle.classList.toggle('active', !isVisible);
-        };
-
-        zoomInput.oninput = (e) => {
-            const val = e.target.value;
-            zoomText.innerText = parseFloat(val).toFixed(1) + "x";
-            applyZoom(val);
-        };
-
-        function applyZoom(val) {
-            const mirror = (currentFacingMode === "user") ? -1 : 1;
-            video.style.transform = `scale(${val}) scaleX(${mirror})`;
-        }
-
-        // 3. Chụp ảnh (Xử lý đúng chiều và Zoom)
-        function takePhoto() {
-            const canvas = document.getElementById('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
+        // Giả lập AI xử lý trong 1.5 giây (Không lo bị treo máy)
+        setTimeout(() => {
+            loading.style.display = "none";
             
-            const zoom = parseFloat(zoomInput.value);
+            // Chọn ngẫu nhiên 1 người trong danh sách để hiển thị so sánh
+            const randomCeleb = listCelebs[Math.floor(Math.random() * listCelebs.length)];
             
-            ctx.save();
-            // Lật ảnh nếu là cam selfie để lưu đúng chiều thực tế
-            if (currentFacingMode === "user") {
-                ctx.translate(canvas.width, 0);
-                ctx.scale(-1, 1);
-            }
+            // Đổ dữ liệu vào giao diện
+            celebName.innerText = randomCeleb.name;
+            celebImg.src = randomCeleb.img;
+            matchPercent.innerText = `🎉 Bạn giống ${randomCeleb.name} đến ${randomCeleb.percent}!`;
             
-            // Tính toán vùng vẽ dựa trên Zoom
-            const sw = canvas.width / zoom;
-            const sh = canvas.height / zoom;
-            const sx = (canvas.width - sw) / 2;
-            const sy = (canvas.height - sh) / 2;
+            // Hiện vùng kết quả
+            resultBox.style.display = "block";
             
-            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-            ctx.restore();
-            
-            const url = canvas.toDataURL('image/png');
-            saveToGallery(url, 'image');
+            // Cuộn màn hình xuống vùng kết quả để người dùng dễ nhìn
+            resultBox.scrollIntoView({ behavior: 'smooth' });
+        }, 1500);
+    });
+</script>
 
-            video.style.opacity = 0.5;
-            setTimeout(() => video.style.opacity = 1, 100);
-        }
-
-        // 4. Quay Video
-        function toggleRecording() {
-            if (!isRecording) {
-                recordedChunks = [];
-                mediaRecorder = new MediaRecorder(currentStream);
-                mediaRecorder.ondataavailable = (e) => e.data.size > 0 && recordedChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    saveToGallery(url, 'video');
-                };
-                mediaRecorder.start();
-                isRecording = true;
-                recordBtn.classList.add('recording');
-                startTimer();
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordBtn.classList.remove('recording');
-                stopTimer();
-            }
-        }
-
-        // 5. Bộ sưu tập & Xóa
-        function saveToGallery(url, type) {
-            const id = Date.now();
-            const item = { id, url, type };
-            currentGalleryItems.push(item);
-            renderGallery();
-        }
-
-        function renderGallery() {
-            gallery.innerHTML = '';
-            currentGalleryItems.forEach(item => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'gallery-item-wrapper';
-                
-                const media = document.createElement(item.type === 'image' ? 'img' : 'video');
-                media.src = item.url;
-                media.className = 'gallery-item';
-                media.onclick = () => openModal(item);
-                
-                const delBtn = document.createElement('button');
-                delBtn.innerHTML = '×';
-                delBtn.className = 'delete-btn';
-                delBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteItem(item.id);
-                };
-                
-                wrapper.appendChild(media);
-                wrapper.appendChild(delBtn);
-                gallery.prepend(wrapper);
-            });
-        }
-
-        function deleteItem(id) {
-            currentGalleryItems = currentGalleryItems.filter(i => i.id !== id);
-            renderGallery();
-            closeModal();
-        }
-
-        // 6. Xem lại
-        function openModal(item) {
-            modalContent.innerHTML = '';
-            const el = document.createElement(item.type === 'image' ? 'img' : 'video');
-            el.src = item.url;
-            if (item.type === 'video') el.controls = true;
-            modalContent.appendChild(el);
-            
-            downloadLink.href = item.url;
-            downloadLink.download = `camera_${item.id}.${item.type === 'image' ? 'png' : 'webm'}`;
-            
-            delCurrentBtn.onclick = () => deleteItem(item.id);
-            modal.style.display = 'flex';
-        }
-
-        function closeModal() { modal.style.display = 'none'; modalContent.innerHTML = ''; }
-
-        function toggleCamera() {
-            currentFacingMode = (currentFacingMode === "user") ? "environment" : "user";
-            initCamera();
-        }
-
-        function startTimer() {
-            let s = 0;
-            timerEl.innerText = "00:00";
-            timerEl.style.display = 'block';
-            timerInterval = setInterval(() => {
-                s++;
-                const min = Math.floor(s/60).toString().padStart(2,'0');
-                const sec = (s%60).toString().padStart(2,'0');
-                timerEl.innerText = `${min}:${sec}`;
-            }, 1000);
-        }
-
-        function stopTimer() { clearInterval(timerInterval); timerEl.style.display = 'none'; }
-
-        window.onload = initCamera;
-    </script>
 </body>
 </html>
