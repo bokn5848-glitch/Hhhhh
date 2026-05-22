@@ -8,22 +8,27 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background-color: #f5f7fa; margin: 0; padding: 15px; }
         .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h2 { color: #333; margin-bottom: 5px; }
-        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 15px; }
         
-        /* Khung hiển thị camera và kết quả */
-        .camera-box { position: relative; width: 100%; max-width: 350px; margin: auto; border-radius: 10px; overflow: hidden; border: 3px solid #0084ff; background: #000; }
-        video { width: 100%; display: block; transform: scaleX(-1); /* Phản chiếu như gương */ }
+        /* Bộ chọn danh mục */
+        .select-box { margin-bottom: 20px; }
+        .select-box label { font-weight: bold; color: #444; display: block; margin-bottom: 5px; font-size: 15px; }
+        .select-box select { padding: 10px; width: 85%; border-radius: 8px; border: 2px solid #0084ff; font-size: 16px; outline: none; background-color: #fff; cursor: pointer; }
+
+        /* Khung hiển thị camera */
+        .camera-box { position: relative; width: 100%; max-width: 320px; margin: auto; border-radius: 10px; overflow: hidden; border: 3px solid #0084ff; background: #000; }
+        video { width: 100%; display: block; transform: scaleX(-1); }
         
-        button { background: linear-gradient(135deg, #0084ff, #0052cc); color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 25px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 80%; box-shadow: 0 4px 10px rgba(0,132,255,0.3); }
+        button { background: linear-gradient(135deg, #0084ff, #0052cc); color: white; border: none; padding: 14px 28px; font-size: 16px; border-radius: 25px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 85%; box-shadow: 0 4px 10px rgba(0,132,255,0.3); }
         button:active { transform: scale(0.98); }
 
         /* Vùng hiển thị kết quả so sánh */
         .result-container { display: none; margin-top: 25px; border-top: 2px dashed #ddd; padding-top: 20px; }
         .match-title { font-size: 18px; font-weight: bold; color: #28a745; margin-bottom: 15px; }
         .vs-box { display: flex; justify-content: space-around; align-items: center; gap: 10px; }
-        .face-img { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .face-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .vs-text { font-size: 20px; font-weight: bold; color: #ff3b30; }
-        .celebrity-name { font-weight: bold; margin-top: 8px; color: #333; }
+        .celebrity-name { font-weight: bold; margin-top: 8px; color: #333; font-size: 15px; }
         
         .loading { display: none; color: #ff9500; font-weight: bold; margin-top: 15px; }
     </style>
@@ -32,28 +37,36 @@
 
 <div class="container">
     <h2>Ai Là Bản Sao Của Bạn?</h2>
-    <div class="subtitle">Chụp một bức ảnh để tìm Youtuber giống bạn nhất</div>
+    <div class="subtitle">Chụp ảnh để xem bạn giống thần tượng nào nhất</div>
+
+    <!-- KHU VỰC LỰA CHỌN NHÓM NGƯỜI NỔI TIẾNG -->
+    <div class="select-box">
+        <label for="celeb-cate">Chọn nhóm người muốn so sánh:</label>
+        <select id="celeb-cate">
+            <option value="vn_youtuber">🇻🇳 Youtuber Việt Nam (Lâm Vlog, Độ Mixi...)</option>
+            <option value="intl_youtuber">🇺🇸 Youtuber Quốc Tế (MrBeast, Mark Rober...)</option>
+        </select>
+    </div>
 
     <div class="camera-box">
         <video id="video" autoplay playsinline></video>
     </div>
 
     <button id="btn-scan">📸 CHỤP & PHÂN TÍCH</button>
-    <div id="loading" class="loading">🤖 AI đang phân tích quét khuôn mặt...</div>
+    <div id="loading" class="loading">🤖 AI đang quét các góc cạnh khuôn mặt...</div>
 
     <!-- Khu vực hiện kết quả song song -->
     <div id="result-box" class="result-container">
         <div id="match-percent" class="match-title">Giống 92%</div>
         <div class="vs-box">
             <div>
-                <canvas id="user-canvas" style="width: 130px; height: 130px; border-radius: 50%; border: 3px solid #0084ff; object-fit: cover;"></canvas>
+                <canvas id="user-canvas" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #0084ff; object-fit: cover;"></canvas>
                 <div class="celebrity-name">Bạn</div>
             </div>
             <div class="vs-text">VS</div>
             <div>
-                <!-- Ảnh người nổi tiếng (Thay bằng link ảnh thật nếu muốn) -->
-                <img id="celeb-img" class="face-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400" alt="Người nổi tiếng">
-                <div id="celeb-name" class="celebrity-name">Độ Mixi</div>
+                <img id="celeb-img" class="face-img" src="" alt="Người nổi tiếng">
+                <div id="celeb-name" class="celebrity-name">-</div>
             </div>
         </div>
     </div>
@@ -68,51 +81,65 @@
     const celebImg = document.getElementById('celeb-img');
     const celebName = document.getElementById('celeb-name');
     const matchPercent = document.getElementById('match-percent');
+    const celebCate = document.getElementById('celeb-cate');
 
-    // Danh sách Youtuber mẫu để AI đối chiếu ngẫu nhiên khi chạy offline thuần HTML
-    const listCelebs = [
-        { name: "Độ Mixi", img: "https://i.imgur.com/83pL6yG.png", percent: "87.5%" },
-        { name: "Cris Phan", img: "https://i.imgur.com/xscH9sS.png", percent: "91.2%" },
-        { name: "Sơn Tùng M-TP", img: "https://i.imgur.com/eBwzU0P.png", percent: "85.4%" },
-        { name: "PewPew", img: "https://i.imgur.com/gYwNshI.png", percent: "79.9%" }
-    ];
+    // KHO DỮ LIỆU ĐƯỢC PHÂN CHIA THEO NHÓM
+    const database = {
+        // Nhóm 1: Youtuber Việt Nam
+        vn_youtuber: [
+            { name: "Lâm Vlog", img: "https://i.imgur.com/vH97Z9B.png", minPercent: 82, maxPercent: 96 },
+            { name: "Độ Mixi", img: "https://i.imgur.com/83pL6yG.png", minPercent: 78, maxPercent: 94 },
+            { name: "Cris Phan", img: "https://i.imgur.com/xscH9sS.png", minPercent: 80, maxPercent: 97 },
+            { name: "PewPew", img: "https://i.imgur.com/gYwNshI.png", minPercent: 75, maxPercent: 91 }
+        ],
+        // Nhóm 2: Youtuber Quốc Tế
+        intl_youtuber: [
+            { name: "MrBeast (Jimmy Donaldson)", img: "https://i.imgur.com/XFm66XN.png", minPercent: 80, maxPercent: 95 },
+            { name: "Mark Rober", img: "https://i.imgur.com/97y4wO6.png", minPercent: 79, maxPercent: 93 },
+            { name: "Zach King", img: "https://i.imgur.com/mOqW8Xb.png", minPercent: 82, maxPercent: 96 },
+            { name: "PewDiePie", img: "https://i.imgur.com/uCclw38.png", minPercent: 76, maxPercent: 92 }
+        ]
+    };
 
-    // 1. Mở camera ngay khi vào web
+    // 1. Mở camera điện thoại
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 400, height: 400 } })
         .then(stream => { video.srcObject = stream; })
-        .catch(err => { alert("Vui lòng cho phép quyền Camera để trải nghiệm!"); });
+        .catch(err => { alert("Vui lòng cấp quyền Camera để chơi game!"); });
 
-    // 2. Nhấn nút chụp và giả lập quét AI cực nhanh
+    // 2. Click nút Chụp & Phân tích
     btnScan.addEventListener('click', () => {
-        // Hiện hiệu ứng loading
         loading.style.display = "block";
         resultBox.style.display = "none";
         
-        // Chụp lại ảnh từ video đưa vào canvas tròn của người dùng
+        // Chụp mặt người dùng đưa vào canvas
         const ctx = userCanvas.getContext('2d');
         userCanvas.width = video.videoWidth;
         userCanvas.height = video.videoHeight;
-        // Lật ngược canvas lại cho đúng chiều gương
         ctx.translate(userCanvas.width, 0);
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0, userCanvas.width, userCanvas.height);
 
-        // Giả lập AI xử lý trong 1.5 giây (Không lo bị treo máy)
+        // Giả lập AI quét dữ liệu dựa trên nhóm đã chọn
         setTimeout(() => {
             loading.style.display = "none";
             
-            // Chọn ngẫu nhiên 1 người trong danh sách để hiển thị so sánh
-            const randomCeleb = listCelebs[Math.floor(Math.random() * listCelebs.length)];
+            // Lấy nhóm người dùng chọn hiện tại (vn_youtuber hoặc intl_youtuber)
+            const currentGroup = celebCate.value;
+            const listAvailable = database[currentGroup];
             
-            // Đổ dữ liệu vào giao diện
-            celebName.innerText = randomCeleb.name;
-            celebImg.src = randomCeleb.img;
-            matchPercent.innerText = `🎉 Bạn giống ${randomCeleb.name} đến ${randomCeleb.percent}!`;
+            // Bốc ngẫu nhiên 1 người trong nhóm đó
+            const matchedPerson = listAvailable[Math.floor(Math.random() * listAvailable.length)];
             
-            // Hiện vùng kết quả
+            // Tính ngẫu nhiên phần trăm giống (ví dụ từ 80% đến 96%)
+            const randomPercent = Math.floor(Math.random() * (matchedPerson.maxPercent - matchedPerson.minPercent + 1)) + matchedPerson.minPercent;
+            
+            // Cập nhật giao diện kết quả
+            celebName.innerText = matchedPerson.name;
+            celebImg.src = matchedPerson.img;
+            matchPercent.innerText = `🎉 Bạn giống ${matchedPerson.name} đến ${randomPercent}%!`;
+            
+            // Hiển thị khung so sánh và cuộn màn hình xuống
             resultBox.style.display = "block";
-            
-            // Cuộn màn hình xuống vùng kết quả để người dùng dễ nhìn
             resultBox.scrollIntoView({ behavior: 'smooth' });
         }, 1500);
     });
